@@ -1,0 +1,52 @@
+---
+title: "Assignment06"
+author: "Kyle Dukart"
+date: "March 6, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+1) Boosting is a type of bagging where each algorithm's predictors are not made independently but instead sequentially.
+
+2) The boosting process starts by taking a small sample of the data, say 10%, and applies a model to make a weak prediction rule.  In this first iteration, all data is weighted equally and is equally likely to be used to train the model.  If there is prediction error in the first model, we pay special attention to the observations that have caused this error in subsequent iterations.  We keep iterating this process until the limit is achieved and further iterations make no improvements in accuracy.
+
+3) 
+``` {r start}
+##install.packages("adabag", repos="http://cran.us.r-project.org")
+library(adabag)
+##install.packages("rpart", repos="http://cran.us.r-project.org")
+library(rpart)
+bcdata = read.csv("C:/Users/Kyle/Desktop/rfiles/wisc_bc_data.csv")
+summary(bcdata)
+str(bcdata)
+```
+
+``` {r train}
+bcdata.adaboost <- boosting(diagnosis~., data=bcdata, boos=TRUE, 
+	mfinal=5)
+importanceplot(bcdata.adaboost)
+sub <- c(sample(1:110, 35), sample(111:220, 35), sample(221:330, 35), sample(331:440, 35), sample(441:569, 35))
+bcdata.bagging <- bagging(diagnosis ~ ., data=bcdata[sub,], mfinal=5)
+bcdata.predbagging<-predict.bagging(bcdata.bagging, newdata=bcdata[-sub,])
+bcdata.predbagging
+```
+
+``` {r tenfoldcrossvalidation}
+#Create 10 equally size folds
+folds <- cut(seq(1,nrow(bcdata)),breaks=10,labels=FALSE)
+
+#Perform 10 fold cross validation
+for(i in 1:10){
+    #Segement your data by fold using the which() function 
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData <- bcdata[testIndexes, ]
+    trainData <- bcdata[-testIndexes, ]
+    trainData.adaboost <- boosting(diagnosis~., data=bcdata, boos=TRUE, mfinal=5)
+    sub <- c(sample(1:100, 35), sample(101:200, 35), sample(201:300, 35), sample(301:400, 35), sample(401:500, 35))
+    trainData.bagging <- bagging(diagnosis ~ ., data=trainData[sub,], mfinal=5)
+    trainData.predbagging<-predict.bagging(trainData.bagging, newdata=trainData[-sub,])
+    trainData.predbagging
+}
+```
